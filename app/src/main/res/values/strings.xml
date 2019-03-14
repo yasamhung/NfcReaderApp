@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">NfcReaderApp</string>
+    <string name="nfcContext">Hold a tag  aginst the back of your device</string>
 </resources>
