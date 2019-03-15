@@ -6,24 +6,35 @@ import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
+import android.os.Handler;
+import android.os.Message;
 import android.os.Parcelable;
 import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.nfcreaderapp.comm.DumpTagData;
+import com.example.nfcreaderapp.conn.UbicastHttpConn;
 import com.example.nfcreaderapp.parser.NdefMessageParser;
 import com.example.nfcreaderapp.record.ParsedNdefRecord;
 
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     NfcAdapter nfcAdapter = null;
     PendingIntent pendingIntent = null;
     TextView text = null;
+
+    UbicastHttpConn postConn = null;
+    UbicastHttpConn getConn = null;
+    public static Handler handler; //宣告成static讓service可以直接使用
+    private Button postBtn;
+    private Button getBtn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +42,32 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         text = (TextView) findViewById(R.id.text);
+
+        postBtn = (Button) findViewById(R.id.btnPost);
+        getBtn = (Button) findViewById(R.id.btnGet);
+
+        //讓多個Button共用一個Listener，在Listener中再去設定各按鈕要做的事
+        postBtn.setOnClickListener(this);
+        getBtn.setOnClickListener(this);
+
+
+        //接收service傳出Post的到的回傳訊息，並透過Toast顯示出來
+        handler = new Handler(){
+            public void handleMessage(Message msg){
+                switch (msg.what){
+                    case 1: //POST
+                        String ss = (String)msg.obj;
+                        Toast.makeText(MainActivity.this, "POST:" + ss,Toast.LENGTH_LONG).show();
+                        break;
+                    case 2://GET
+                        String as = (String)msg.obj;
+                        Toast.makeText(MainActivity.this, "GET:" + as,Toast.LENGTH_LONG).show();
+                        break;
+                }
+            }
+        };
+
+        /*
         nfcAdapter = NfcAdapter.getDefaultAdapter(this);
 
         if (nfcAdapter == null) {
@@ -42,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
         pendingIntent = PendingIntent.getActivity(this, 0,
                 new Intent(this, this.getClass())
                         .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
+       */
     }
 
     @Override
@@ -113,5 +151,43 @@ public class MainActivity extends AppCompatActivity {
         }
 
         text.setText(builder.toString());
+    }
+
+    @Override
+    public void onClick(View v) {
+        StringBuffer body = new StringBuffer("");
+        Toast.makeText(this, "onClick", Toast.LENGTH_LONG).show();
+        switch(v.getId()){
+            case R.id.btnPost:
+                Toast.makeText(this, "Post Click", Toast.LENGTH_SHORT).show();
+                body.append("action=bcv"); //bcv or preserveCodeCheck
+                body.append("&appId=EINV9201710073426");
+                body.append("&barCode=kkkk");
+                //body.append("&pCode=919");
+                body.append("&TxID=kkkXSAFAFEFEQFAEFAEFEFEAE1234124");
+                body.append("&version=1.0");
+                postConn = new UbicastHttpConn();
+                postConn.request(
+                        UbicastHttpConn.Method.POST.value(),
+                        "https://wwwtest-vc.einvoice.nat.gov.tw/BIZAPIVAN/biz",
+                        body.toString(),
+                        UbicastHttpConn.ContentType.OTHER.value(),
+                        this);
+                break;
+            case R.id.btnGet:
+                Toast.makeText(this, "Get Click", Toast.LENGTH_SHORT).show();
+                body.append("page=1");
+                body.append("&perPageRows=10");
+                postConn = new UbicastHttpConn();
+                postConn.request(
+                        UbicastHttpConn.Method.GET.value(),
+                        "http://192.168.100.159/api/display/bestMembers/TW",
+                        body.toString(),
+                        UbicastHttpConn.ContentType.JSON.value(),
+                        this);
+                break;
+            default:
+                break;
+        }
     }
 }
