@@ -181,7 +181,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 postConn = new UbicastHttpConn();
                 postConn.request(
                         UbicastHttpConn.Method.GET.value(),
-                        "http://192.168.100.159/api/display/bestMembers/TW",
+                        "http://192.168.100.159/api/display/bestMembers/TW?" ,
                         body.toString(),
                         UbicastHttpConn.ContentType.JSON.value(),
                         this);
